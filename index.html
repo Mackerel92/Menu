@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>메뉴판</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf9f6;--surface:#fff;--text-primary:#1a1a1a;--text-secondary:#6b6b6b;
+  --text-muted:#aaa;--accent-light:#f0ede8;--border:#e8e4de;
+  --badge-bg:#f5f0e8;--badge-text:#7a6a52;
+  --font-h:'Noto Serif KR',serif;--font-b:'Noto Sans KR',sans-serif;
+}
+body{background:var(--bg);font-family:var(--font-b);color:var(--text-primary);min-height:100vh}
+
+/* HEADER */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:2.5rem 1.5rem 0;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.04)}
+.header-top{text-align:center;padding-bottom:1.5rem;position:relative}
+.restaurant-name{font-family:var(--font-h);font-size:clamp(1.6rem,5vw,2.2rem);font-weight:700;letter-spacing:-.02em}
+.restaurant-sub{margin-top:.3rem;font-size:.8rem;color:var(--text-muted);letter-spacing:.12em;text-transform:uppercase}
+
+/* SETTINGS BTN */
+.settings-btn{position:absolute;top:0;right:0;background:none;border:1px solid var(--border);border-radius:8px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:background .15s,color .15s}
+.settings-btn:hover{background:var(--accent-light);color:var(--text-primary)}
+.settings-btn svg{width:16px;height:16px}
+
+/* TABS */
+.tabs-wrapper{overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+.tabs-wrapper::-webkit-scrollbar{display:none}
+.tabs{display:flex;gap:4px;padding:0 .5rem;white-space:nowrap}
+.tab-btn{background:transparent;border:none;padding:.65rem 1.1rem;font-family:var(--font-b);font-size:.85rem;font-weight:400;color:var(--text-secondary);cursor:pointer;border-radius:8px 8px 0 0;position:relative;transition:color .2s,background .2s}
+.tab-btn::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:transparent;transition:background .2s}
+.tab-btn:hover{color:var(--text-primary);background:var(--accent-light)}
+.tab-btn.active{color:var(--text-primary);font-weight:700}
+.tab-btn.active::after{background:var(--text-primary)}
+
+/* MAIN */
+main{max-width:780px;margin:0 auto;padding:2rem 1.2rem 4rem}
+.category-section{display:none}
+.category-section.active{display:block}
+.section-label{font-family:var(--font-h);font-size:1.25rem;font-weight:700;letter-spacing:-.01em;margin-bottom:1.4rem;padding-bottom:.7rem;border-bottom:1px solid var(--border)}
+
+/* MENU LIST */
+.menu-list{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.menu-item{display:flex;align-items:center;gap:1.2rem;background:var(--surface);padding:1.1rem 1.3rem;transition:background .15s;position:relative}
+.menu-item:hover{background:#fdfcfa}
+.menu-img-wrap{flex-shrink:0;width:80px;height:80px;border-radius:10px;overflow:hidden;background:var(--accent-light)}
+.menu-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.img-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;background:var(--badge-bg)}
+.menu-info{flex:1;min-width:0}
+.menu-name{font-weight:700;font-size:.98rem;letter-spacing:-.01em;margin-bottom:.25rem}
+.menu-desc{font-size:.8rem;color:var(--text-secondary);line-height:1.55}
+.menu-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:.4rem}
+.badge{font-size:.68rem;font-weight:500;padding:2px 7px;border-radius:4px;background:var(--badge-bg);color:var(--badge-text);letter-spacing:.02em}
+.badge.new{background:#fdecea;color:#b94040}
+.badge.best{background:#edf4fd;color:#3a6fa8}
+.badge.spicy{background:#fff2ea;color:#c55a20}
+.badge.veg{background:#edf6ee;color:#3a7a42}
+.menu-price{flex-shrink:0;font-size:.95rem;font-weight:700;letter-spacing:-.01em;white-space:nowrap;margin-left:.5rem;align-self:center}
+
+/* edit overlay btn */
+.item-edit-btn{display:none;position:absolute;top:8px;right:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:.72rem;font-family:var(--font-b);color:var(--text-secondary);cursor:pointer}
+.item-edit-btn:hover{background:var(--accent-light)}
+body.edit-mode .item-edit-btn{display:block}
+body.edit-mode .menu-item{padding-right:68px}
+
+.add-item-btn{width:100%;background:var(--surface);border:none;border-top:1px solid var(--border);padding:.85rem;font-family:var(--font-b);font-size:.82rem;color:var(--text-muted);cursor:pointer;transition:background .15s,color .15s;display:none;text-align:center}
+body.edit-mode .add-item-btn{display:block}
+.add-item-btn:hover{background:#fdfcfa;color:var(--text-secondary)}
+
+/* OVERLAY */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+.overlay.open{opacity:1;pointer-events:all}
+
+/* DRAWER */
+.drawer{position:fixed;top:0;right:0;width:min(460px,100vw);height:100%;background:var(--surface);z-index:201;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:1.2rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.drawer-title{font-family:var(--font-h);font-size:1.05rem;font-weight:700}
+.drawer-close{background:none;border:none;cursor:pointer;color:var(--text-secondary);padding:4px;border-radius:6px;display:flex;align-items:center}
+.drawer-close:hover{background:var(--accent-light)}
+.drawer-close svg{width:18px;height:18px}
+.drawer-body{overflow-y:auto;flex:1;padding:1.4rem}
+
+/* edit toggle */
+.edit-toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--accent-light);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:1.6rem}
+.edit-toggle-label{font-size:.88rem;font-weight:500}
+.edit-toggle-sub{font-size:.75rem;color:var(--text-secondary);margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;background:var(--border);border-radius:12px;transition:background .2s;cursor:pointer}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-switch input:checked~.toggle-track{background:#1a1a1a}
+.toggle-switch input:checked~.toggle-thumb{transform:translateX(20px)}
+
+.drawer-section{margin-bottom:1.8rem}
+.drawer-section-title{font-size:.7rem;font-weight:700;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.9rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+
+.field{margin-bottom:.95rem}
+.field label{display:block;font-size:.78rem;font-weight:500;color:var(--text-secondary);margin-bottom:.35rem}
+.field input,.field textarea,.field select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.6rem .85rem;font-family:var(--font-b);font-size:.85rem;color:var(--text-primary);outline:none;transition:border-color .15s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:#999}
+.field textarea{resize:vertical;min-height:72px;line-height:1.5}
+
+.badge-group{display:flex;gap:6px;flex-wrap:wrap}
+.badge-check{display:none}
+.badge-label{font-size:.72rem;font-weight:500;padding:4px 10px;border-radius:5px;border:1px solid var(--border);cursor:pointer;transition:all .15s;color:var(--text-secondary);background:var(--surface)}
+.badge-check:checked+.badge-label.best{background:#edf4fd;color:#3a6fa8;border-color:#b5d4f4}
+.badge-check:checked+.badge-label.new{background:#fdecea;color:#b94040;border-color:#f7c1c1}
+.badge-check:checked+.badge-label.spicy{background:#fff2ea;color:#c55a20;border-color:#fac775}
+.badge-check:checked+.badge-label.veg{background:#edf6ee;color:#3a7a42;border-color:#c0dd97}
+
+.img-preview-row{display:flex;align-items:flex-start;gap:.9rem;margin-bottom:.9rem}
+.img-preview{width:60px;height:60px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.6rem;overflow:hidden;flex-shrink:0;background:var(--badge-bg)}
+.img-preview img{width:100%;height:100%;object-fit:cover;display:block}
+
+.btn-row{display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap}
+.btn{border:none;border-radius:8px;padding:.68rem 1.1rem;font-family:var(--font-b);font-size:.85rem;font-weight:500;cursor:pointer;transition:background .15s,opacity .15s}
+.btn-primary{background:#1a1a1a;color:#fff}
+.btn-primary:hover{background:#333}
+.btn-danger{background:#fdecea;color:#b94040}
+.btn-danger:hover{background:#f7c1c1}
+.btn-ghost{background:var(--accent-light);color:var(--text-primary)}
+.btn-ghost:hover{background:var(--border)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.item-drawer-list{display:flex;flex-direction:column;gap:6px;margin-bottom:.8rem}
+.item-drawer-row{display:flex;align-items:center;gap:.8rem;padding:.65rem .85rem;background:var(--bg);border-radius:8px;border:1px solid var(--border)}
+.item-drawer-thumb{width:36px;height:36px;border-radius:6px;overflow:hidden;background:var(--badge-bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.item-drawer-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.item-drawer-name{flex:1;font-size:.85rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-drawer-price{font-size:.78rem;color:var(--text-secondary);flex-shrink:0;margin-right:.3rem}
+.item-drawer-edit{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:.72rem;font-family:var(--font-b);color:var(--text-secondary);cursor:pointer;flex-shrink:0}
+.item-drawer-edit:hover{background:var(--accent-light)}
+
+/* ITEM MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:14px;width:min(420px,100%);max-height:90vh;overflow-y:auto;padding:1.6rem}
+.modal-title{font-family:var(--font-h);font-size:1.05rem;font-weight:700;margin-bottom:1.3rem}
+
+@media(max-width:500px){
+  .menu-img-wrap{width:68px;height:68px}
+  .menu-name{font-size:.9rem}
+  .menu-price{font-size:.88rem}
+}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- SETTINGS DRAWER -->
+<aside class="drawer" id="drawer">
+  <div class="drawer-header">
+    <span class="drawer-title">설정</span>
+    <button class="drawer-close" id="drawerClose">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+
+    <div class="edit-toggle-row">
+      <div>
+        <div class="edit-toggle-label">편집 모드</div>
+        <div class="edit-toggle-sub">켜면 메뉴 항목마다 수정 버튼이 나타나요</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="editToggle">
+        <span class="toggle-track"></span>
+        <span class="toggle-thumb"></span>
+      </label>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">가게 정보</div>
+      <div class="field">
+        <label>가게 이름</label>
+        <input type="text" id="shopName" placeholder="예) 우리 식당">
+      </div>
+      <div class="field">
+        <label>부제</label>
+        <input type="text" id="shopSub" placeholder="예) Digital Menu">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="saveShopBtn" onclick="saveShopInfo()">저장</button>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">메뉴 관리</div>
+      <div class="field">
+        <label>카테고리</label>
+        <select id="drawerCatSelect" onchange="renderDrawerItemList()">
+          <option value="hanshik">한식</option>
+          <option value="yangsik">양식</option>
+          <option value="ilsik">일식</option>
+          <option value="brunch">브런치</option>
+          <option value="gansik">간식</option>
+          <option value="anju">안주</option>
+        </select>
+      </div>
+      <div class="item-drawer-list" id="drawerItemList"></div>
+      <button class="btn btn-ghost" style="width:100%" onclick="openItemModal(null)">+ 새 메뉴 추가</button>
+    </div>
+
+  </div>
+</aside>
+
+<!-- ITEM MODAL -->
+<div class="modal-overlay" id="itemModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">메뉴 추가</div>
+
+    <div class="img-preview-row">
+      <div class="img-preview" id="imgPreview">🍽️</div>
+      <div style="flex:1">
+        <div class="field" style="margin-bottom:.5rem">
+          <label>이미지 URL</label>
+          <input type="text" id="mImgUrl" placeholder="https://... (없으면 이모지 사용)" oninput="previewImg()">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>이모지 (이미지 없을 때)</label>
+          <input type="text" id="mEmoji" placeholder="🍚" maxlength="4" oninput="previewImg()">
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>메뉴명 *</label>
+      <input type="text" id="mName" placeholder="메뉴 이름">
+    </div>
+    <div class="field">
+      <label>설명</label>
+      <textarea id="mDesc" placeholder="메뉴 설명"></textarea>
+    </div>
+    <div class="field">
+      <label>가격</label>
+      <input type="text" id="mPrice" placeholder="예) 12,000원">
+    </div>
+    <div class="field">
+      <label>배지</label>
+      <div class="badge-group">
+        <input class="badge-check" type="checkbox" id="b_best" value="best">
+        <label class="badge-label best" for="b_best">BEST</label>
+        <input class="badge-check" type="checkbox" id="b_new" value="new">
+        <label class="badge-label new" for="b_new">NEW</label>
+        <input class="badge-check" type="checkbox" id="b_spicy" value="spicy">
+        <label class="badge-label spicy" for="b_spicy">매운맛</label>
+        <input class="badge-check" type="checkbox" id="b_veg" value="veg">
+        <label class="badge-label veg" for="b_veg">채식가능</label>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveItem()">저장</button>
+      <button class="btn btn-danger" id="deleteItemBtn" onclick="deleteItem()">삭제</button>
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE -->
+<header>
+  <div class="header-top">
+    <div class="restaurant-name" id="displayName">우리 식당</div>
+    <div class="restaurant-sub" id="displaySub">Digital Menu</div>
+    <button class="settings-btn" id="settingsBtn" title="설정">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+  <div class="tabs-wrapper">
+    <nav class="tabs" id="tabNav">
+      <button class="tab-btn active" data-target="hanshik">한식</button>
+      <button class="tab-btn" data-target="yangsik">양식</button>
+      <button class="tab-btn" data-target="ilsik">일식</button>
+      <button class="tab-btn" data-target="brunch">브런치</button>
+      <button class="tab-btn" data-target="gansik">간식</button>
+      <button class="tab-btn" data-target="anju">안주</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="category-section active" id="hanshik">
+    <h2 class="section-label">한식</h2>
+    <div class="menu-list" id="list-hanshik"></div>
+  </section>
+  <section class="category-section" id="yangsik">
+    <h2 class="section-label">양식</h2>
+    <div class="menu-list" id="list-yangsik"></div>
+  </section>
+  <section class="category-section" id="ilsik">
+    <h2 class="section-label">일식</h2>
+    <div class="menu-list" id="list-ilsik"></div>
+  </section>
+  <section class="category-section" id="brunch">
+    <h2 class="section-label">브런치</h2>
+    <div class="menu-list" id="list-brunch"></div>
+  </section>
+  <section class="category-section" id="gansik">
+    <h2 class="section-label">간식</h2>
+    <div class="menu-list" id="list-gansik"></div>
+  </section>
+  <section class="category-section" id="anju">
+    <h2 class="section-label">안주</h2>
+    <div class="menu-list" id="list-anju"></div>
+  </section>
+</main>
+
+<script>
+/* DEFAULT DATA */
+const DEFAULT = {
+  shop: { name: '우리 식당', sub: 'Digital Menu' },
+  menus: {
+    hanshik: [
+      { id:'h1', name:'돌솥비빔밥', desc:'각종 나물과 고추장, 달걀 프라이를 곁들인 따끈한 돌솥 비빔밥', price:'12,000원', emoji:'🍚', img:'', badges:['best','veg'] },
+      { id:'h2', name:'된장찌개 정식', desc:'구수한 재래된장으로 끓인 찌개와 공기밥, 밑반찬 세 가지', price:'11,000원', emoji:'🍜', img:'', badges:['best'] },
+      { id:'h3', name:'제육볶음 정식', desc:'매콤달콤한 양념에 볶아낸 돼지목살, 공기밥 포함', price:'13,000원', emoji:'🥩', img:'', badges:['spicy'] },
+    ],
+    yangsik: [
+      { id:'y1', name:'까르보나라 파스타', desc:'생크림과 베이컨, 파르마산 치즈로 만든 진한 크림 파스타', price:'14,000원', emoji:'🍝', img:'', badges:['best'] },
+      { id:'y2', name:'안심 스테이크', desc:'200g 국내산 안심, 계절 채소 구이와 머쉬룸 소스', price:'28,000원', emoji:'🥩', img:'', badges:[] },
+      { id:'y3', name:'마르게리타 피자', desc:'토마토소스, 생모짜렐라, 바질잎의 클래식 나폴리 피자', price:'17,000원', emoji:'🍕', img:'', badges:['veg'] },
+    ],
+    ilsik: [
+      { id:'i1', name:'모듬 초밥 (12피스)', desc:'당일 들어온 신선한 해산물로 구성된 셰프 추천 모듬 초밥', price:'24,000원', emoji:'🍣', img:'', badges:['new','best'] },
+      { id:'i2', name:'돈코츠 라멘', desc:'12시간 우린 돼지뼈 육수에 차슈, 반숙란, 해초 토핑', price:'13,000원', emoji:'🍜', img:'', badges:['best'] },
+      { id:'i3', name:'가츠동', desc:'바삭한 돈가스와 달걀, 양파를 달달한 소스로 덮은 일본식 덮밥', price:'12,000원', emoji:'🍱', img:'', badges:[] },
+    ],
+    brunch: [
+      { id:'b1', name:'에그 베네딕트', desc:'잉글리시 머핀 위에 수란과 홀란다이즈 소스, 훈제 연어', price:'16,000원', emoji:'🥚', img:'', badges:['best'] },
+      { id:'b2', name:'리코타 팬케이크', desc:'리코타 치즈를 넣어 폭신한 팬케이크, 메이플 시럽과 딸기 컴포트', price:'14,000원', emoji:'🥞', img:'', badges:['new'] },
+      { id:'b3', name:'아보카도 토스트', desc:'사워도우 브레드에 으깬 아보카도, 반숙란, 체리 토마토, 크리미 드레싱', price:'13,000원', emoji:'🥗', img:'', badges:['veg'] },
+    ],
+    gansik: [
+      { id:'g1', name:'크로플', desc:'크루아상 반죽을 와플 기계에 구워 겹겹이 바삭한 크로플, 아이스크림 포함', price:'8,000원', emoji:'🧁', img:'', badges:['best'] },
+      { id:'g2', name:'소금 카라멜 브라우니', desc:'진한 다크 초콜릿 브라우니에 플뢰르 드 셀, 카라멜 드리즐', price:'6,000원', emoji:'🍫', img:'', badges:['new'] },
+      { id:'g3', name:'트러플 감자튀김', desc:'두툼하게 자른 감자를 튀겨 트러플 오일과 파마산으로 마무리', price:'9,000원', emoji:'🍟', img:'', badges:[] },
+    ],
+    anju: [
+      { id:'a1', name:'양념 닭갈비', desc:'매콤달콤한 양념에 재운 닭갈비, 고구마·양배추와 함께', price:'18,000원', emoji:'🍗', img:'', badges:['best','spicy'] },
+      { id:'a2', name:'모듬 치즈 플래터', desc:'브리, 고다, 블루치즈와 크래커, 견과류, 허니컴', price:'22,000원', emoji:'🧀', img:'', badges:['new'] },
+      { id:'a3', name:'오징어 볶음', desc:'싱싱한 오징어를 고추장 양념에 볶아낸 칼칼한 안주', price:'15,000원', emoji:'🦑', img:'', badges:['spicy'] },
+    ],
+  }
+};
+
+const STORE_KEY = 'menuboard_v1';
+const BADGE_LABEL = { best:'BEST', new:'NEW', spicy:'매운맛', veg:'채식가능' };
+
+let state = loadState();
+let editingItemId = null;
+let editingCat = null;
+
+function loadState() {
+  try {
+    const r = localStorage.getItem(STORE_KEY);
+    if (r) return JSON.parse(r);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT));
+}
+function saveState() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+function uid() { return '_' + Math.random().toString(36).slice(2,9); }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* RENDER */
+function renderAll() {
+  document.getElementById('displayName').textContent = state.shop.name;
+  document.getElementById('displaySub').textContent = state.shop.sub;
+  document.title = state.shop.name;
+  ['hanshik','yangsik','ilsik','brunch','gansik','anju'].forEach(renderCat);
+}
+
+function renderCat(cat) {
+  const list = document.getElementById('list-' + cat);
+  list.innerHTML = '';
+  (state.menus[cat] || []).forEach(item => list.appendChild(buildItemEl(item, cat)));
+
+  const btn = document.createElement('button');
+  btn.className = 'add-item-btn';
+  btn.textContent = '+ 메뉴 추가';
+  btn.onclick = () => { document.getElementById('drawerCatSelect').value = cat; openItemModal(null); };
+  list.appendChild(btn);
+}
+
+function buildItemEl(item, cat) {
+  const div = document.createElement('div');
+  div.className = 'menu-item';
+
+  const iw = document.createElement('div');
+  iw.className = 'menu-img-wrap';
+  if (item.img) {
+    const img = document.createElement('img');
+    img.src = item.img; img.alt = item.name;
+    img.onerror = () => { iw.innerHTML = `<div class="img-placeholder">${item.emoji||'🍽️'}</div>`; };
+    iw.appendChild(img);
+  } else {
+    iw.innerHTML = `<div class="img-placeholder">${item.emoji||'🍽️'}</div>`;
+  }
+
+  const info = document.createElement('div');
+  info.className = 'menu-info';
+  const bdg = (item.badges||[]).map(b => `<span class="badge ${b}">${BADGE_LABEL[b]||b}</span>`).join('');
+  info.innerHTML = `<div class="menu-name">${esc(item.name)}</div><div class="menu-desc">${esc(item.desc)}</div>${bdg?`<div class="menu-badges">${bdg}</div>`:''}`;
+
+  const price = document.createElement('div');
+  price.className = 'menu-price';
+  price.textContent = item.price;
+
+  const eb = document.createElement('button');
+  eb.className = 'item-edit-btn';
+  eb.textContent = '수정';
+  eb.onclick = e => { e.stopPropagation(); openItemModal(item.id, cat); };
+
+  div.append(iw, info, price, eb);
+  return div;
+}
+
+/* DRAWER */
+document.getElementById('settingsBtn').onclick = openDrawer;
+document.getElementById('drawerClose').onclick = closeDrawer;
+document.getElementById('overlay').onclick = closeDrawer;
+
+function openDrawer() {
+  document.getElementById('shopName').value = state.shop.name;
+  document.getElementById('shopSub').value = state.shop.sub;
+  document.getElementById('editToggle').checked = document.body.classList.contains('edit-mode');
+  renderDrawerItemList();
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+document.getElementById('editToggle').onchange = function() {
+  document.body.classList.toggle('edit-mode', this.checked);
+};
+
+function saveShopInfo() {
+  state.shop.name = document.getElementById('shopName').value.trim() || '우리 식당';
+  state.shop.sub  = document.getElementById('shopSub').value.trim() || 'Digital Menu';
+  saveState(); renderAll();
+  const btn = document.getElementById('saveShopBtn');
+  btn.textContent = '저장됨 ✓'; btn.disabled = true;
+  setTimeout(() => { btn.textContent = '저장'; btn.disabled = false; }, 1500);
+}
+
+function renderDrawerItemList() {
+  const cat = document.getElementById('drawerCatSelect').value;
+  const c = document.getElementById('drawerItemList');
+  c.innerHTML = '';
+  (state.menus[cat]||[]).forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'item-drawer-row';
+    const thumb = item.img ? `<img src="${item.img}" alt="">` : (item.emoji||'🍽️');
+    row.innerHTML = `
+      <div class="item-drawer-thumb">${thumb}</div>
+      <div class="item-drawer-name">${esc(item.name)}</div>
+      <div class="item-drawer-price">${esc(item.price)}</div>
+      <button class="item-drawer-edit" onclick="openItemModal('${item.id}','${cat}')">수정</button>
+    `;
+    c.appendChild(row);
+  });
+}
+
+/* ITEM MODAL */
+function openItemModal(id, cat) {
+  editingItemId = id;
+  editingCat = cat || document.getElementById('drawerCatSelect').value;
+  ['mName','mDesc','mPrice','mImgUrl','mEmoji'].forEach(f => document.getElementById(f).value = '');
+  ['best','new','spicy','veg'].forEach(b => document.getElementById('b_'+b).checked = false);
+  document.getElementById('imgPreview').innerHTML = '🍽️';
+
+  if (id) {
+    const item = (state.menus[editingCat]||[]).find(x => x.id === id);
+    if (!item) return;
+    document.getElementById('modalTitle').textContent = '메뉴 수정';
+    document.getElementById('mName').value  = item.name;
+    document.getElementById('mDesc').value  = item.desc;
+    document.getElementById('mPrice').value = item.price;
+    document.getElementById('mImgUrl').value = item.img||'';
+    document.getElementById('mEmoji').value  = item.emoji||'';
+    (item.badges||[]).forEach(b => { const el = document.getElementById('b_'+b); if(el) el.checked=true; });
+    document.getElementById('deleteItemBtn').style.display = '';
+    previewImg();
+  } else {
+    document.getElementById('modalTitle').textContent = '새 메뉴 추가';
+    document.getElementById('deleteItemBtn').style.display = 'none';
+  }
+  document.getElementById('itemModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('itemModal').classList.remove('open');
+  editingItemId = null; editingCat = null;
+}
+
+function previewImg() {
+  const url   = document.getElementById('mImgUrl').value.trim();
+  const emoji = document.getElementById('mEmoji').value.trim() || '🍽️';
+  const prev  = document.getElementById('imgPreview');
+  if (url) {
+    prev.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.innerHTML='${emoji}'">`;
+  } else {
+    prev.innerHTML = emoji;
+  }
+}
+
+function saveItem() {
+  const name = document.getElementById('mName').value.trim();
+  if (!name) { alert('메뉴명을 입력해주세요.'); return; }
+  const badges = ['best','new','spicy','veg'].filter(b => document.getElementById('b_'+b).checked);
+  const item = {
+    id:    editingItemId || uid(),
+    name,
+    desc:  document.getElementById('mDesc').value.trim(),
+    price: document.getElementById('mPrice').value.trim(),
+    img:   document.getElementById('mImgUrl').value.trim(),
+    emoji: document.getElementById('mEmoji').value.trim() || '🍽️',
+    badges,
+  };
+  const list = state.menus[editingCat];
+  if (editingItemId) {
+    const idx = list.findIndex(x => x.id === editingItemId);
+    if (idx !== -1) list[idx] = item;
+  } else {
+    list.push(item);
+  }
+  saveState(); renderCat(editingCat); renderDrawerItemList(); closeModal();
+}
+
+function deleteItem() {
+  if (!confirm('이 메뉴를 삭제할까요?')) return;
+  state.menus[editingCat] = state.menus[editingCat].filter(x => x.id !== editingItemId);
+  saveState(); renderCat(editingCat); renderDrawerItemList(); closeModal();
+}
+
+/* TAB NAV */
+document.getElementById('tabNav').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.category-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(btn.dataset.target).classList.add('active');
+  window.scrollTo({ top:0, behavior:'smooth' });
+});
+
+renderAll();
+</script>
+</body>
+</html>
